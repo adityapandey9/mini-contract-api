@@ -1,0 +1,27 @@
+{
+  "name": "my-project",
+  "module": "index.ts",
+  "scripts": {
+    "start": "bun index.js",
+    "dev": "bun --watch index.js",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit generate"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "drizzle-kit": "^0.30.5"
+  },
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.41.0",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.2",
+    "pg": "^8.14.1",
+    "swagger-ui-express": "^5.0.1",
+    "ws": "^8.18.1",
+    "yamljs": "^0.3.0"
+  }
+}

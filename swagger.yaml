@@ -1,0 +1,213 @@
+openapi: 3.0.0
+info:
+  title: Contract Management API
+  version: 1.0.0
+paths:
+  /contracts:
+    get:
+      summary: Get all contracts with optional filters
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: integer
+        - in: query
+          name: title
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Draft, Finalized]
+        - in: query
+          name: condition 
+          summary: filter conditon
+          schema:
+            type: string
+            enum: [AND, OR]
+        - in: query
+          name: party
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of contracts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  contracts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contract'
+
+    post:
+      summary: Create a new contract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractInput'
+      responses:
+        '201':
+          description: Contract created
+
+  /contracts/upload:
+    post:
+      summary: Upload contracts from file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Contracts uploaded
+
+  /contracts/{id}:
+    put:
+      summary: Update a contract
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractInput'
+      responses:
+        '200':
+          description: Contract updated
+
+    delete:
+      summary: Delete a contract
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Contract deleted
+
+  /dashboard-summary:
+    get:
+      summary: Get dashboard summary
+      responses:
+        '200':
+          description: Dashboard metrics and recent contracts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      draft:
+                        type: integer
+                      finalized:
+                        type: integer
+                      change:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          draft:
+                            type: integer
+                          finalized:
+                            type: integer
+                  recentContracts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContractSummary'
+
+components:
+  schemas:
+    Contract:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [Draft, Finalized]
+        parties:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ContractInput:
+      type: object
+      required:
+        - title
+        - status
+        - content
+        - parties
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [Draft, Finalized]
+        parties:
+          type: array
+          items:
+            type: string
+
+    ContractSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum: [Draft, Finalized]
+        description:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
