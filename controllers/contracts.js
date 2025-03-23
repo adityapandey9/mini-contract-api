@@ -1,24 +1,34 @@
-import { db } from '../db/client.js';
-import { contracts } from '../drizzle/schema/contracts.js';
-import { eq, ilike, and, or, sql } from 'drizzle-orm';
+import { db } from "../db/client.js";
+import { contracts } from "../drizzle/schema/contracts.js";
+import { eq, ilike, and, or, sql } from "drizzle-orm";
 import { broadcastUpdate } from "../wss/index.js";
 
 export const getContracts = async (req, res) => {
   try {
-    let { id, title, status, party, condition, page = 1, limit = 10 } = req.query;
+    let {
+      id,
+      title,
+      status,
+      party,
+      condition,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     try {
       page = parseInt(page);
     } catch (error) {
-      return res.status(400).json({ message: 'Enter a valid page number' });
+      return res.status(400).json({ message: "Enter a valid page number" });
     }
 
     if (Number.isInteger(page) && page < 1) {
-      return res.status(400).json({ message: 'Enter a valid page number' });
+      return res.status(400).json({ message: "Enter a valid page number" });
     }
 
-    if (condition !== 'AND' && condition !== 'OR') {
-      return res.status(400).json({ message: 'Enter a valid condition AND, OR' });
+    if (condition && condition !== "AND" && condition !== "OR") {
+      return res
+        .status(400)
+        .json({ message: "Enter a valid condition AND, OR" });
     }
 
     const filters = [];
@@ -39,22 +49,30 @@ export const getContracts = async (req, res) => {
 
     let filterCondition = and(...filters);
 
-    if (condition === 'OR') {
+    if (condition === "OR") {
       filterCondition = or(...filters);
     }
 
-    const query = db.select().from(contracts).where(filterCondition).limit(Number(limit)).offset(offset);
-    const totalQuery = db.select({ count: sql`count(*)::int` }).from(contracts).where(filterCondition);
+    const query = db
+      .select()
+      .from(contracts)
+      .where(filterCondition)
+      .limit(Number(limit))
+      .offset(offset);
+    const totalQuery = db
+      .select({ count: sql`count(*)::int` })
+      .from(contracts)
+      .where(filterCondition);
 
     const [data, total] = await Promise.all([query, totalQuery]);
 
     res.json({
       total: Number(total[0]?.count || 0),
-      contracts: data
+      contracts: data,
     });
   } catch (error) {
-    console.error('Get Contracts Error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Get Contracts Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -63,34 +81,39 @@ export const createContract = async (req, res) => {
     const { title, description, status, content, parties } = req.body;
 
     if (!title || !status || !content || !parties) {
-      return res.status(400).json({ message: 'title, status, content, and parties are required' });
+      return res
+        .status(400)
+        .json({ message: "title, status, content, and parties are required" });
     }
 
-    const result = await db.insert(contracts).values({
-      title,
-      description,
-      status,
-      content,
-      parties,
-    }).returning();
+    const result = await db
+      .insert(contracts)
+      .values({
+        title,
+        description,
+        status,
+        content,
+        parties,
+      })
+      .returning();
 
-    broadcastUpdate({ type: 'created', contract: result[0] });
+    broadcastUpdate({ type: "created", contract: result[0] });
 
     res.status(201).json({ contract: result[0] });
   } catch (error) {
-    console.error('Create Contract Error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Create Contract Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const uploadContracts = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
     const fileBuffer = req.file.buffer;
-    const fileContent = fileBuffer.toString('utf-8');
+    const fileContent = fileBuffer.toString("utf-8");
 
     let contractsArray = [];
 
@@ -98,31 +121,36 @@ export const uploadContracts = async (req, res) => {
       contractsArray = JSON.parse(fileContent);
     } catch {
       contractsArray = fileContent
-        .split('\n')
+        .split("\n")
         .filter(Boolean)
-        .map(line => JSON.parse(line));
+        .map((line) => JSON.parse(line));
     }
 
     if (!Array.isArray(contractsArray)) {
       contractsArray = [contractsArray];
     }
 
-    const inserted = await db.insert(contracts).values(
-      contractsArray.map(({ title, description, status, content, parties }) => ({
-        title,
-        description,
-        status,
-        content,
-        parties
-      }))
-    ).returning();
+    const inserted = await db
+      .insert(contracts)
+      .values(
+        contractsArray.map(
+          ({ title, description, status, content, parties }) => ({
+            title,
+            description,
+            status,
+            content,
+            parties,
+          })
+        )
+      )
+      .returning();
 
-    broadcastUpdate({ type: 'created', contracts: inserted });
+    broadcastUpdate({ type: "created", contracts: inserted });
 
     res.status(201).json({ inserted });
   } catch (err) {
-    console.error('Upload Contract Error:', err);
-    res.status(500).json({ message: 'Failed to upload contracts' });
+    console.error("Upload Contract Error:", err);
+    res.status(500).json({ message: "Failed to upload contracts" });
   }
 };
 
@@ -132,7 +160,7 @@ export const updateContract = async (req, res) => {
     const { title, description, status, content, parties } = req.body;
 
     if (isNaN(contractId)) {
-      return res.status(400).json({ message: 'Invalid contract ID' });
+      return res.status(400).json({ message: "Invalid contract ID" });
     }
 
     const updateData = {};
@@ -143,7 +171,7 @@ export const updateContract = async (req, res) => {
     if (parties !== undefined) updateData.parties = parties;
 
     if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ message: 'No fields to update' });
+      return res.status(400).json({ message: "No fields to update" });
     }
 
     updateData.updatedAt = new Date();
@@ -155,15 +183,15 @@ export const updateContract = async (req, res) => {
       .returning();
 
     if (!updated.length) {
-      return res.status(404).json({ message: 'Contract not found' });
+      return res.status(404).json({ message: "Contract not found" });
     }
 
-    broadcastUpdate({ type: 'updated', contract: updated[0] });
+    broadcastUpdate({ type: "updated", contract: updated[0] });
 
     res.json({ updated: updated[0] });
   } catch (error) {
-    console.error('Update Contract Error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Update Contract Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -172,7 +200,7 @@ export const deleteContract = async (req, res) => {
     const contractId = Number(req.params.id);
 
     if (isNaN(contractId)) {
-      return res.status(400).json({ message: 'Invalid contract ID' });
+      return res.status(400).json({ message: "Invalid contract ID" });
     }
 
     const deleted = await db
@@ -181,15 +209,15 @@ export const deleteContract = async (req, res) => {
       .returning();
 
     if (!deleted.length) {
-      return res.status(404).json({ message: 'Contract not found' });
+      return res.status(404).json({ message: "Contract not found" });
     }
 
-    broadcastUpdate({ type: 'deleted', contract: deleted[0] });
+    broadcastUpdate({ type: "deleted", contract: deleted[0] });
 
-    res.json({ message: 'Contract deleted', deleted: deleted[0] });
+    res.json({ message: "Contract deleted", deleted: deleted[0] });
   } catch (error) {
-    console.error('Delete Contract Error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Delete Contract Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -238,13 +266,13 @@ export const getDashboardSummary = async (req, res) => {
         change: {
           total: data.total - data.total_last_month,
           draft: data.draft - data.draft_last_month,
-          finalized: data.finalized - data.finalized_last_month
-        }
+          finalized: data.finalized - data.finalized_last_month,
+        },
       },
-      recentContracts: data.recent_contracts || []
+      recentContracts: data.recent_contracts || [],
     });
   } catch (err) {
-    console.error('Dashboard Summary Error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Dashboard Summary Error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
