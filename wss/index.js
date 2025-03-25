@@ -1,25 +1,24 @@
-import { WebSocketServer } from 'ws';
-import http from 'http';
-import { app } from "../config/index";
+// wss/index.js
+import { WebSocketServer } from "ws";
+import http from "http";
+import { app } from "../config/index.js";
 
-// Store active clients
 const clients = new Set();
 
-const server = http.createServer(app); // wrap app in HTTP server
+const server = http.createServer(app);
 
-const wss = new WebSocketServer({ server }); // wrap server in WebSocket server
+const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
+wss.on("connection", (ws) => {
   clients.add(ws);
-  console.log('🟢 Client connected');
+  console.log("🟢 Client connected");
 
-  ws.on('close', () => {
+  ws.on("close", () => {
     clients.delete(ws);
-    console.log('🔴 Client disconnected');
+    console.log("🔴 Client disconnected");
   });
 });
 
-// Function to broadcast a message to all connected clients
 export const broadcastUpdate = (data) => {
   const msg = JSON.stringify(data);
   for (const client of clients) {
@@ -28,3 +27,5 @@ export const broadcastUpdate = (data) => {
     }
   }
 };
+
+export { server };
